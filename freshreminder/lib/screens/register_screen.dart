@@ -38,10 +38,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               const SizedBox(height: 60),
               // Logo/Title
-              Icon(
-                Icons.grass,
-                size: 64,
-                color: Theme.of(context).colorScheme.primary,
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.grass,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -56,7 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 'Join FreshReminder today',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
+                      color: Theme.of(context).colorScheme.secondary,
                     ),
               ),
               const SizedBox(height: 40),
@@ -68,22 +75,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ? Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.red[100],
+                            color: Colors.red.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red[300]!),
+                            border: Border.all(color: Colors.red.withOpacity(0.3)),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.error, color: Colors.red[700]),
+                              Icon(Icons.error, color: Colors.red[600]),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   authProvider.error!,
-                                  style: TextStyle(color: Colors.red[700]),
+                                  style: TextStyle(color: Colors.red[600]),
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.close),
+                                icon: Icon(Icons.close, color: Colors.red[600]),
                                 onPressed: () => authProvider.clearError(),
                                 padding: EdgeInsets.zero,
                               ),
@@ -100,12 +107,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _emailController,
                 decoration: InputDecoration(
                   labelText: 'Email',
-                  prefixIcon: const Icon(Icons.email),
+                  prefixIcon: Icon(
+                    Icons.email,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    ),
                   ),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.05),
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -117,10 +136,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock),
+                  prefixIcon: Icon(
+                    Icons.lock,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     onPressed: () {
                       setState(() {
@@ -130,9 +153,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    ),
                   ),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.05),
                 ),
               ),
               const SizedBox(height: 16),
@@ -143,12 +175,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 obscureText: _obscureConfirmPassword,
                 decoration: InputDecoration(
                   labelText: 'Confirm Password',
-                  prefixIcon: const Icon(Icons.lock),
+                  prefixIcon: Icon(
+                    Icons.lock,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureConfirmPassword
                           ? Icons.visibility_off
                           : Icons.visibility,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     onPressed: () {
                       setState(() {
@@ -158,9 +194,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    ),
                   ),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.05),
                 ),
               ),
               const SizedBox(height: 32),

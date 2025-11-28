@@ -25,17 +25,43 @@ class FreshReminderApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.green,
+            seedColor: const Color(0xFF315C2B),
             brightness: Brightness.light,
+            primary: const Color(0xFF315C2B),
+            secondary: const Color(0xFF60712F),
+            tertiary: const Color(0xFF9EA93F),
           ),
           useMaterial3: true,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFF274029),
+            foregroundColor: Colors.white,
+          ),
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF315C2B),
+              foregroundColor: Colors.white,
+            ),
+          ),
         ),
         darkTheme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.green,
+            seedColor: const Color(0xFF9EA93F),
             brightness: Brightness.dark,
+            primary: const Color(0xFF9EA93F),
+            primaryContainer: const Color(0xFF315C2B),
+            secondary: const Color(0xFF60712F),
           ),
           useMaterial3: true,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFF181F1C),
+            foregroundColor: Color(0xFF9EA93F),
+          ),
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF60712F),
+              foregroundColor: const Color(0xFF9EA93F),
+            ),
+          ),
         ),
         home: const AuthWrapper(),
       ),
@@ -95,7 +121,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('FreshReminder'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
@@ -232,21 +257,23 @@ class ProductListPage extends StatelessWidget {
                 Icon(
                   Icons.inventory_2_outlined,
                   size: 80,
-                  color: Colors.grey[400],
+                  color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Keine Produkte vorhanden',
                   style: TextStyle(
                     fontSize: 18,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.secondary,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Scanne einen Kassenbon oder füge\nProdukte manuell hinzu',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[500]),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
+                  ),
                 ),
               ],
             ),
@@ -314,7 +341,7 @@ class ProductCard extends StatelessWidget {
               _formatDate(product.expirationDate),
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
               ),
             ),
           ],
