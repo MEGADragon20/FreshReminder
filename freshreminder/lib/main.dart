@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
+import 'services/api_service.dart';
+import 'providers/auth_provider.dart';
+import 'screens/auth_wrapper.dart';
 
 void main() {
   runApp(const FreshReminderApp());
@@ -12,36 +16,41 @@ class FreshReminderApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'FreshReminder',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          brightness: Brightness.light,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: MaterialApp(
+        title: 'FreshReminder',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.green,
+            brightness: Brightness.light,
+          ),
+          useMaterial3: true,
         ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          brightness: Brightness.dark,
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.green,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
         ),
-        useMaterial3: true,
+        home: const AuthWrapper(),
       ),
-      home: const HomePage(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
   // Dummy-Produkte für die Demo
@@ -413,20 +422,28 @@ class _ScannerPageState extends State<ScannerPage> {
 
     _stopScanner();
 
-    // Simuliere API-Call zum Backend
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Demo: Generiere Produkte aus dem QR-Code
-    final newProducts = _simulateProductImport(code);
-
+    try {
+      // API Call
+      final apiService = ApiService();
+      final newProducts = await apiService.importFromQR(code);
+    
     widget.onProductsScanned(newProducts);
-
+    
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${newProducts.length} Produkte importiert!'),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
+        ),
+      );
+    } 
+    } catch (e) {
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Fehler: $e'),
+          backgroundColor: Colors.red,
         ),
       );
 
@@ -437,27 +454,9 @@ class _ScannerPageState extends State<ScannerPage> {
       }
     }
   }
-
-  List<Product> _simulateProductImport(String qrCode) {
-    // Simuliere Import von Produkten basierend auf QR-Code
-    // In Realität würde hier ein API-Call stattfinden
-    return [
-      Product(
-        name: 'Schokolade',
-        expirationDate: DateTime.now().add(const Duration(days: 30)),
-        category: 'Süßwaren',
-      ),
-      Product(
-        name: 'Butter',
-        expirationDate: DateTime.now().add(const Duration(days: 14)),
-        category: 'Milchprodukte',
-      ),
-      Product(
-        name: 'Äpfel',
-        expirationDate: DateTime.now().add(const Duration(days: 7)),
-        category: 'Obst',
-      ),
-    ];
+    setState(() {
+      _isScanning = false;
+    });
   }
 
   @override
@@ -613,68 +612,83 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const CircleAvatar(
-          radius: 50,
-          child: Icon(Icons.person, size: 50),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Demo User',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'demo@freshreminder.de',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey[600]),
-        ),
-        const SizedBox(height: 32),
-        ListTile(
-          leading: const Icon(Icons.notifications),
-          title: const Text('Benachrichtigungen'),
-          trailing: Switch(
-            value: true,
-            onChanged: (value) {},
-          ),
-        ),
-        ListTile(
-          leading: const Icon(Icons.delete_outline),
-          title: const Text('Abgelaufene Produkte'),
-          subtitle: const Text('Automatisch nach 7 Tagen entfernen'),
-          trailing: Switch(
-            value: true,
-            onChanged: (value) {},
-          ),
-        ),
-        const Divider(),
-        ListTile(
-          leading: const Icon(Icons.info_outline),
-          title: const Text('Über FreshReminder'),
-          onTap: () {},
-        ),
-        ListTile(
-          leading: const Icon(Icons.logout),
-          title: const Text('Abmelden'),
-          onTap: () {},
-        ),
-      ],
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const CircleAvatar(
+              radius: 50,
+              child: Icon(Icons.person, size: 50),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              authProvider.userEmail ?? 'User',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              authProvider.userEmail ?? 'No email',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 32),
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text('Benachrichtigungen'),
+              trailing: Switch(
+                value: true,
+                onChanged: (value) {},
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Abgelaufene Produkte'),
+              subtitle: const Text('Automatisch nach 7 Tagen entfernen'),
+              trailing: Switch(
+                value: true,
+                onChanged: (value) {},
+              ),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: const Text('Über FreshReminder'),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Abmelden'),
+              onTap: () async {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Abmelden?'),
+                    content: const Text('Möchten Sie sich wirklich abmelden?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Abbrechen'),
+                      ),
+                      FilledButton(
+                        onPressed: () {
+                          authProvider.logout();
+                          Navigator.pop(context);
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
+                        child: const Text('Abmelden'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
-}
-
-// Produkt-Model
-class Product {
-  final String name;
-  final DateTime expirationDate;
-  final String category;
-
-  Product({
-    required this.name,
-    required this.expirationDate,
-    required this.category,
-  });
 }
