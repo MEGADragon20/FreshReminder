@@ -75,6 +75,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
   
+  void clearLogoutState() {
+    _isLoggedIn = false;
+    _userEmail = null;
+    _error = null;
+    notifyListeners();
+  }
+  
   void clearError() {
     _error = null;
     notifyListeners();

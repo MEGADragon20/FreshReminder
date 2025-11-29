@@ -21,7 +21,7 @@ def register():
     db.session.add(user)
     db.session.commit()
     
-    token = create_access_token(identity=user.id)
+    token = create_access_token(identity=str(user.id))
     return jsonify({'token': token, 'user_id': user.id}), 201
 
 @users_bp.route('/login', methods=['POST'])
@@ -32,13 +32,13 @@ def login():
     if not user or not check_password_hash(user.password_hash, data['password']):
         return jsonify({'error': 'Ungültige Anmeldedaten'}), 401
     
-    token = create_access_token(identity=user.id)
+    token = create_access_token(identity=str(user.id))
     return jsonify({'token': token, 'user_id': user.id})
 
 @users_bp.route('/profile', methods=['GET'])
 @jwt_required()
 def get_profile():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
     return jsonify({
         'email': user.email,
@@ -49,7 +49,7 @@ def get_profile():
 @users_bp.route('/push-token', methods=['POST'])
 @jwt_required()
 def update_push_token():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     token = request.json.get('token')
     
     user = User.query.get(user_id)

@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:provider/provider.dart';
 import 'services/api_service.dart';
 import 'providers/auth_provider.dart';
+import 'providers/product_provider.dart';
 import 'screens/auth_wrapper.dart';
 
 void main() {
@@ -19,6 +20,7 @@ class FreshReminderApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
       ],
       child: MaterialApp(
         title: 'FreshReminder',
@@ -79,24 +81,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  // Dummy-Produkte für die Demo
-  final List<Product> _products = [
-    Product(
-      name: 'Milch',
-      expirationDate: DateTime.now().add(const Duration(days: 2)),
-      category: 'Milchprodukte',
-    ),
-    Product(
-      name: 'Joghurt',
-      expirationDate: DateTime.now().add(const Duration(days: 5)),
-      category: 'Milchprodukte',
-    ),
-    Product(
-      name: 'Salat',
-      expirationDate: DateTime.now().add(const Duration(days: 1)),
-      category: 'Gemüse',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Load products when user logs in
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProductProvider>().loadProducts();
+    });
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -104,55 +96,53 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _addProductsFromScan(List<Product> newProducts) {
-    setState(() {
-      _products.addAll(newProducts);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      ProductListPage(products: _products),
-      ScannerPage(onProductsScanned: _addProductsFromScan),
-      const ProfilePage(),
-    ];
+    return Consumer<ProductProvider>(
+      builder: (context, productProvider, _) {
+        final List<Widget> pages = [
+          ProductListPage(products: productProvider.products),
+          ScannerPage(productProvider: productProvider),
+          const ProfilePage(),
+        ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('FreshReminder'),
-      ),
-      body: pages[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onItemTapped,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.kitchen),
-            label: 'Produkte',
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('FreshReminder'),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.qr_code_scanner),
-            label: 'Scannen',
+          body: pages[_selectedIndex],
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: _onItemTapped,
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.kitchen),
+                label: 'Produkte',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.qr_code_scanner),
+                label: 'Scannen',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person),
+                label: 'Profil',
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-          ),
-        ],
-      ),
-      floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton(
-              onPressed: () {
-                _showAddProductDialog(context);
-              },
-              child: const Icon(Icons.add),
-            )
-          : null,
+          floatingActionButton: _selectedIndex == 0
+              ? FloatingActionButton(
+                  onPressed: () {
+                    _showAddProductDialog(context, productProvider);
+                  },
+                  child: const Icon(Icons.add),
+                )
+              : null,
+        );
+      },
     );
   }
 
-  void _showAddProductDialog(BuildContext context) {
+  void _showAddProductDialog(BuildContext context, ProductProvider productProvider) {
     final nameController = TextEditingController();
     final categoryController = TextEditingController(text: 'Sonstiges');
     DateTime selectedDate = DateTime.now().add(const Duration(days: 7));
@@ -207,22 +197,35 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Text('Abbrechen'),
             ),
             FilledButton(
-              onPressed: () {
+              onPressed: () async {
                 if (nameController.text.isNotEmpty) {
-                  setState(() {
-                    _products.add(Product(
-                      name: nameController.text,
-                      expirationDate: selectedDate,
-                      category: categoryController.text,
-                    ));
-                  });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${nameController.text} hinzugefügt'),
-                      backgroundColor: Colors.green,
-                    ),
+                  final newProduct = Product(
+                    name: nameController.text,
+                    expirationDate: selectedDate,
+                    category: categoryController.text,
                   );
+                  
+                  try {
+                    await productProvider.addProduct(newProduct);
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${nameController.text} hinzugefügt'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Fehler: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 }
               },
               child: const Text('Hinzufügen'),
@@ -346,6 +349,51 @@ class ProductCard extends StatelessWidget {
             ),
           ],
         ),
+        onLongPress: product.id != null
+            ? () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Produkt löschen?'),
+                    content: Text('${product.name} entfernen?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Abbrechen'),
+                      ),
+                      FilledButton(
+                        onPressed: () async {
+                          try {
+                            await context.read<ProductProvider>().deleteProduct(product.id!);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${product.name} gelöscht'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Fehler: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                        child: const Text('Löschen'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            : null,
       ),
     );
   }
@@ -357,9 +405,9 @@ class ProductCard extends StatelessWidget {
 
 // QR-Code Scanner mit Live-Preview
 class ScannerPage extends StatefulWidget {
-  final Function(List<Product>) onProductsScanned;
+  final ProductProvider productProvider;
 
-  const ScannerPage({super.key, required this.onProductsScanned});
+  const ScannerPage({super.key, required this.productProvider});
 
   @override
   State<ScannerPage> createState() => _ScannerPageState();
@@ -450,37 +498,31 @@ class _ScannerPageState extends State<ScannerPage> {
     _stopScanner();
 
     try {
-      // API Call
-      final apiService = ApiService();
-      final newProducts = await apiService.importFromQR(code);
+      // Import products from QR code
+      await widget.productProvider.importFromQR(code);
     
-    widget.onProductsScanned(newProducts);
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${newProducts.length} Produkte importiert!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } 
-    } catch (e) {
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Fehler: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-
-      // Wechsle zur Produktliste
-      await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) {
-        DefaultTabController.of(context).animateTo(0);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Produkte erfolgreich importiert!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } 
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fehler: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+
+        // Switch to product list
+        await Future.delayed(const Duration(milliseconds: 500));
       }
     }
-  }
+    
     setState(() {
       _isScanning = false;
     });
@@ -700,7 +742,8 @@ class ProfilePage extends StatelessWidget {
                       ),
                       FilledButton(
                         onPressed: () {
-                          authProvider.logout();
+                          context.read<AuthProvider>().logout();
+                          context.read<ProductProvider>().clearProducts();
                           Navigator.pop(context);
                         },
                         style: FilledButton.styleFrom(

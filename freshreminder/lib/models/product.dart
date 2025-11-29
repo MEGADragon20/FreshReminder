@@ -23,7 +23,7 @@ class Product {
   Map<String, dynamic> toJson() {
     return {
       'name': name,
-      'expiration_date': expirationDate.toIso8601String(),
+      'expiration_date': expirationDate.toIso8601String().split('T')[0],
       'category': category,
     };
   }

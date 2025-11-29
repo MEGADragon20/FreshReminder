@@ -9,7 +9,7 @@ products_bp = Blueprint('products', __name__)
 @jwt_required()
 def get_products():
     """Alle aktiven Produkte des Users"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     products = Product.query.filter_by(
         user_id=user_id,
         removed_at=None
@@ -27,14 +27,27 @@ def get_products():
 @jwt_required()
 def add_product():
     """Manuell Produkt hinzufügen"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.json
+    
+    if not data or 'name' not in data or 'expiration_date' not in data:
+        return jsonify({'error': 'Name und Ablaufdatum erforderlich'}), 400
+    
+    try:
+        # Parse date - handle both ISO8601 datetime and date-only formats
+        date_str = data['expiration_date']
+        if 'T' in date_str:
+            expiration_date = datetime.fromisoformat(date_str.split('T')[0]).date()
+        else:
+            expiration_date = datetime.fromisoformat(date_str).date()
+    except (ValueError, AttributeError) as e:
+        return jsonify({'error': f'Ungültiges Datumsformat: {str(e)}'}), 400
     
     product = Product(
         user_id=user_id,
         name=data['name'],
         category=data.get('category', 'Sonstiges'),
-        expiration_date=datetime.fromisoformat(data['expiration_date'])
+        expiration_date=expiration_date
     )
     db.session.add(product)
     db.session.commit()
@@ -45,7 +58,7 @@ def add_product():
 @jwt_required()
 def remove_product(product_id):
     """Produkt entfernen"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     product = Product.query.filter_by(id=product_id, user_id=user_id).first()
     
     if not product:
