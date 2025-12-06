@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
 import '../models/scanned_product.dart';
 import '../providers/cloud_cart_provider.dart';
 import '../widgets/scan_error_dialog.dart';
@@ -13,29 +13,25 @@ class ScannerScreen extends StatefulWidget {
 }
 
 class _ScannerScreenState extends State<ScannerScreen> {
-  late MobileScannerController _scannerController;
+  late final TextEditingController _manualInput;
+  bool _useManualInput = Platform.isLinux || Platform.isWindows;
   bool _isScanning = true;
 
   @override
   void initState() {
     super.initState();
-    _scannerController = MobileScannerController(
-      autoStart: true,
-      torchEnabled: false,
-    );
+    _manualInput = TextEditingController();
   }
 
   @override
   void dispose() {
-    _scannerController.dispose();
+    _manualInput.dispose();
     super.dispose();
   }
 
-  void _handleBarcodeDetect(BarcodeCapture barcode) {
+  void _processQRData(String scannedData) {
     if (!_isScanning) return;
-
-    final scannedData = barcode.barcodes.first.rawValue;
-    if (scannedData == null || scannedData.isEmpty) return;
+    if (scannedData.isEmpty) return;
 
     _isScanning = false;
 
@@ -46,13 +42,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
       // Show success feedback
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Added: ${product.name}'),
+          content: Text('Hinzugefügt: ${product.name}'),
           duration: const Duration(seconds: 2),
           backgroundColor: Colors.green,
         ),
       );
 
-      // Resume scanning after delay
+      // Clear input and resume scanning
+      _manualInput.clear();
       Future.delayed(const Duration(seconds: 1), () {
         if (mounted) {
           setState(() {
@@ -74,8 +71,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildManualInputUI() {
     return Scaffold(
       appBar: AppBar(
         title: const Text('FRKassa - QR Scanner'),
@@ -85,12 +81,57 @@ class _ScannerScreenState extends State<ScannerScreen> {
       body: Column(
         children: [
           Expanded(
-            child: MobileScanner(
-              controller: _scannerController,
-              onDetect: _handleBarcodeDetect,
-              placeholderBuilder: (context) {
-                return const Center(child: CircularProgressIndicator());
-              },
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.qr_code_2, size: 64, color: Colors.blue[300]),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Manuelles Eingeben',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: _manualInput,
+                      decoration: InputDecoration(
+                        hintText: 'Format: Produktname|YYYY-MM-DD|Kategorie',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        prefixIcon: const Icon(Icons.edit),
+                      ),
+                      onSubmitted: _processQRData,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => _processQRData(_manualInput.text),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                      ),
+                      child: const Text('Hinzufügen'),
+                    ),
+                    const SizedBox(height: 32),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Format:\nProduktname|YYYY-MM-DD|Kategorie\n\nBeispiel:\nMilch|2025-12-15|Milchprodukte',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
           Container(
@@ -99,39 +140,60 @@ class _ScannerScreenState extends State<ScannerScreen> {
             child: Column(
               children: [
                 Text(
-                  'Scanned Products: ${context.watch<CloudCartProvider>().productCount}',
+                  'Gescannte Produkte: ${context.watch<CloudCartProvider>().productCount}',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        _scannerController.toggleTorch();
-                      },
-                      icon: const Icon(Icons.flashlight_on),
-                      label: const Text('Torch'),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        context.read<CloudCartProvider>().clearCart();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Cart cleared'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.delete),
-                      label: const Text('Clear Cart'),
-                    ),
-                  ],
+                ElevatedButton.icon(
+                  onPressed: () {
+                    context.read<CloudCartProvider>().clearCart();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Warenkorb geleert'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.delete),
+                  label: const Text('Warenkorb Löschen'),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_useManualInput) {
+      return _buildManualInputUI();
+    }
+
+    // Mobile camera scanner (Android/iOS)
+    return _buildCameraScannerUI();
+  }
+
+  Widget _buildCameraScannerUI() {
+    // This would be the mobile_scanner version for Android/iOS
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('FRKassa - QR Scanner'),
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text('Kamera-Scanner nicht verfügbar'),
+            const SizedBox(height: 8),
+            const Text('Manuelle Eingabe verwenden'),
+          ],
+        ),
       ),
     );
   }

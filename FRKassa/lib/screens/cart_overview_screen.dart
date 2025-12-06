@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../config/api_config.dart';
 import '../providers/cloud_cart_provider.dart';
 import '../widgets/product_list_item.dart';
 
@@ -11,33 +14,15 @@ class CartOverviewScreen extends StatefulWidget {
 }
 
 class _CartOverviewScreenState extends State<CartOverviewScreen> {
-  final TextEditingController _cloudCartIdController = TextEditingController();
   bool _isSubmitting = false;
 
-  @override
-  void dispose() {
-    _cloudCartIdController.dispose();
-    super.dispose();
-  }
-
-  void _submitCart() {
-    final cloudCartId = _cloudCartIdController.text.trim();
-    if (cloudCartId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a CloudCart ID'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
+  void _generateAndSubmitCart() async {
     final products = context.read<CloudCartProvider>().products;
+    
     if (products.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Cart is empty'),
+          content: Text('Warenkorb ist leer'),
           duration: Duration(seconds: 2),
           backgroundColor: Colors.red,
         ),
@@ -49,27 +34,76 @@ class _CartOverviewScreenState extends State<CartOverviewScreen> {
       _isSubmitting = true;
     });
 
-    // TODO: Implement API call to submit cart to backend
-    // For now, simulate submission
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      // Prepare products for backend
+      final productsData = products.map((p) => p.toJson()).toList();
+      
+      // Generate shopping trip token on backend
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/api/import/generate'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'products': productsData,
+          'store_name': 'Supermarkt',
+        }),
+      ).timeout(ApiConfig.apiTimeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['token'];
+        final expiresAt = DateTime.parse(data['expires_at']);
+        
+        // Store token in provider
+        context.read<CloudCartProvider>().setToken(token, expiresAt: expiresAt);
+        
+        // Show success with QR code info
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Warenkorb erstellt'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Token: $token'),
+                  const SizedBox(height: 16),
+                  Text('Verfällt um: ${expiresAt.toLocal()}'),
+                  const SizedBox(height: 16),
+                  const Text('QR-Code wurde in der Kasse generiert'),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    context.read<CloudCartProvider>().clearCart();
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        throw Exception('Server-Fehler: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fehler: $e'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
         });
-
-        // Clear cart after successful submission
-        context.read<CloudCartProvider>().clearCart();
-        _cloudCartIdController.clear();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Cart submitted successfully to CloudCart: $cloudCartId'),
-            duration: const Duration(seconds: 3),
-            backgroundColor: Colors.green,
-          ),
-        );
       }
-    });
+    }
   }
 
   @override
@@ -81,28 +115,40 @@ class _CartOverviewScreenState extends State<CartOverviewScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cart Overview'),
+        title: const Text('Warenkorb-Übersicht'),
         centerTitle: true,
         elevation: 0,
       ),
       body: Column(
         children: [
-          // CloudCart ID Input
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _cloudCartIdController,
-              decoration: InputDecoration(
-                labelText: 'CloudCart ID',
-                hintText: 'Enter the CloudCart ID from the QR code',
-                prefixIcon: const Icon(Icons.tag),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+          // Info Banner
+          if (cartProvider.currentToken != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              color: Colors.green[100],
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green[700]),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Warenkorb erstellt',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Token: ${cartProvider.currentToken}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              enabled: !_isSubmitting,
             ),
-          ),
+
           // Product List
           Expanded(
             child: products.isEmpty
@@ -117,7 +163,7 @@ class _CartOverviewScreenState extends State<CartOverviewScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No products scanned yet',
+                          'Keine Produkte gescannt',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                 color: Colors.grey[600],
                               ),
@@ -140,7 +186,7 @@ class _CartOverviewScreenState extends State<CartOverviewScreen> {
                           context.read<CloudCartProvider>().removeProductAt(index);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Removed: ${product.name}'),
+                              content: Text('Entfernt: ${product.name}'),
                               duration: const Duration(seconds: 2),
                             ),
                           );
@@ -149,6 +195,7 @@ class _CartOverviewScreenState extends State<CartOverviewScreen> {
                     },
                   ),
           ),
+
           // Summary and Submit Section
           Container(
             padding: const EdgeInsets.all(16.0),
@@ -165,16 +212,16 @@ class _CartOverviewScreenState extends State<CartOverviewScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStat('Total', products.length.toString()),
+                    _buildStat('Gesamt', products.length.toString()),
                     if (expiredProducts.isNotEmpty)
                       _buildStat(
-                        'Expired',
+                        'Abgelaufen',
                         expiredProducts.length.toString(),
                         color: Colors.red,
                       ),
                     if (expiringToday.isNotEmpty)
                       _buildStat(
-                        'Today',
+                        'Heute',
                         expiringToday.length.toString(),
                         color: Colors.orange,
                       ),
@@ -183,7 +230,7 @@ class _CartOverviewScreenState extends State<CartOverviewScreen> {
                 const SizedBox(height: 16),
                 // Submit Button
                 ElevatedButton.icon(
-                  onPressed: _isSubmitting || products.isEmpty ? null : _submitCart,
+                  onPressed: _isSubmitting || products.isEmpty ? null : _generateAndSubmitCart,
                   icon: _isSubmitting
                       ? const SizedBox(
                           width: 20,
@@ -191,7 +238,7 @@ class _CartOverviewScreenState extends State<CartOverviewScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.upload),
-                  label: Text(_isSubmitting ? 'Submitting...' : 'Submit Cart'),
+                  label: Text(_isSubmitting ? 'Wird übermittelt...' : 'Warenkorb erstellen'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),

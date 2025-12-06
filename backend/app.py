@@ -1,3 +1,4 @@
+import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -23,9 +24,14 @@ app.register_blueprint(users_bp, url_prefix='/api/users')
 def health():
     return jsonify({'status': 'ok'})
 
-# Create database tables
-with app.app_context():
+@app.before_request
+def before_request():
+    """Ensure database tables exist"""
     db.create_all()
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Create tables before starting
+    with app.app_context():
+        db.create_all()
+    # Disable reloader to avoid double init issues
+    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)

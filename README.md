@@ -1,514 +1,402 @@
-# 🍃 FreshReminder
+# FreshReminder - Complete Food Tracking System
 
-A modern Flutter app with Flask backend to help users manage food expiration dates and reduce food waste.
+A comprehensive supermarket and customer-facing application system for tracking food expiration dates and managing shopping trips with QR code integration.
 
-**Status:** ✅ MVP Complete - Core features implemented and tested
+## 🎯 System Overview
 
----
+FreshReminder is a three-part system:
 
-## 📋 Table of Contents
+1. **FRKassa** - Employee/Cashier application for scanning products and generating shopping trips
+2. **FreshReminder** - Customer application for importing shopping trips and tracking product expiration
+3. **Backend API** - Flask-based REST API managing data storage and QR code token system
 
-1. [Quick Start](#quick-start)
-2. [Features](#features)
-3. [Architecture](#architecture)
-4. [Installation](#installation)
-5. [Running the App](#running-the-app)
-6. [Testing](#testing)
-7. [API Documentation](#api-documentation)
-8. [Deployment](#deployment)
-9. [Troubleshooting](#troubleshooting)
+### Architecture Diagram
 
----
+```
+PHASE 1: CASHIER CREATES SHOPPING TRIP
+────────────────────────────────────────
 
-## 🚀 Quick Start (5 minutes)
+  FRKassa (Employee App)          Backend (Flask API)         Database (SQLite)
+  
+  1. Scan QR codes
+  2. Scan QR codes
+  3. Review cart
+  4. Click "Create"
+       │
+       ├──→ POST /api/import/generate
+       │    {products, store_name}
+       │                    │
+       │                    ├─→ Generate token
+       │                    ├─→ Create ShoppingTrip ────→ ✓ Saved
+       │                    ├─→ Create Products ────────→ ✓ Saved
+       │                    │
+       ← ─ ─ Response ─ ─ ─ ← {token, qr_url, expires_at}
+       │
+  5. Display QR code
+  6. Cashier prints/shows to customer
+
+
+PHASE 2: CUSTOMER SCANS AND IMPORTS
+────────────────────────────────────
+
+  FreshReminder (Customer App)     Backend (Flask API)         Database (SQLite)
+  
+  1. See QR code from cashier
+  2. Tap "Scan" button
+  3. Point camera at QR
+       │
+       ├─→ Scans QR code
+       ├─→ Extracts token
+       ├─→ GET /api/import/{token}
+       │   (with JWT auth)
+       │                    │
+       │                    ├─→ Validate token
+       │                    ├─→ Check: Not expired?
+       │                    ├─→ Check: Not imported?
+       │                    ├─→ Mark as imported ───────→ ✓ Updated
+       │                    ├─→ Set user_id ───────────→ ✓ Updated
+       │                    │
+       ← ─ ─ Response ─ ─ ─ ← {products list}
+       │
+  4. Products appear in app
+  5. Customer tracks expiration dates
+```
+
+## 📋 Project Structure
+
+```
+FreshReminder/
+├── README.md .......................... This file (system overview)
+├── backend/ ........................... Flask API server
+│   ├── Backend.md ..................... API documentation
+│   ├── app.py ......................... Flask app entry point
+│   ├── models.py ...................... Database models
+│   ├── config.py ...................... Configuration
+│   ├── requirements.txt ............... Python dependencies
+│   ├── venv/ .......................... Python virtual environment
+│   ├── api/
+│   │   ├── imports.py ................. ShoppingTrip endpoints
+│   │   ├── products.py ................ Product endpoints
+│   │   └── users.py ................... User endpoints
+│   └── freshreminder.db ............... SQLite database
+├── FRKassa/ ........................... Employee app (Flutter)
+│   ├── FRKassa.md ..................... Employee app documentation
+│   ├── pubspec.yaml ................... Flutter dependencies
+│   ├── lib/
+│   │   ├── main.dart .................. App entry point
+│   │   ├── models/
+│   │   │   └── scanned_product.dart ... Product model
+│   │   ├── providers/
+│   │   │   └── cloud_cart_provider.dart  Cart state management
+│   │   ├── screens/
+│   │   │   ├── scanner_screen.dart ... QR scanner interface
+│   │   │   └── cart_overview_screen.dart  Cart & submission
+│   │   └── config/
+│   │       └── api_config.dart ........ Backend URL config
+│   └── build/ ......................... Compiled binaries
+└── freshreminder/ ..................... Customer app (Flutter)
+    ├── FreshReminder.md ............... Customer app documentation
+    ├── pubspec.yaml ................... Flutter dependencies
+    ├── lib/
+    │   ├── main.dart .................. App entry point
+    │   ├── screens/ ................... UI screens
+    │   └── services/ .................. API & data services
+    └── build/ ......................... Compiled binaries
+```
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8+
-- Flutter 3.10+
-- Linux/Android/iOS/macOS device or emulator
 
-### Backend Setup
+- **Flutter 3.38.3+** (https://flutter.dev/docs/get-started/install)
+- **Python 3.10+** (https://www.python.org/downloads/)
+- **Git**
+
+### 1. Start the Backend
+
 ```bash
-cd ../backend
-python -m venv venv
+cd backend
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-python app.py
+python3 app.py
 ```
 
-**Expected output:**
-```
-Running on http://127.0.0.1:5000
-```
+Backend will run at `http://localhost:5000`
 
-### Frontend Setup
+### 2. Run FRKassa (Employee App)
+
 ```bash
+cd FRKassa
 flutter pub get
-flutter run -d linux    # or 'flutter run' for emulator
+flutter run -d linux    # or: android, ios, web, windows, macos
 ```
 
-**Test credentials:**
-```
-Email: test@example.com
-Password: 123456
-```
+### 3. Run FreshReminder (Customer App)
 
----
-
-## ✨ Features
-
-### ✅ Implemented
-- **User Authentication**
-  - Email/password registration
-  - JWT-based login with 30-day tokens
-  - Secure password hashing
-  - Session persistence
-
-- **Product Management**
-  - Add products with name, category, expiration date
-  - Auto-sorted by expiration (soonest first)
-  - Color-coded urgency (green → yellow → red)
-  - Delete products (long-press)
-  - Persistent storage (survives restarts)
-  - Per-user product isolation
-
-- **Database**
-  - SQLite for development
-  - PostgreSQL support for production
-  - User products stored in database
-  - Automatic timestamp tracking
-
-- **UI/UX**
-  - Material Design 3
-  - Custom earthy color scheme ( #181F1C, #274029, #315C2B, #60712F, #9EA93F)
-  - Responsive layout
-  - Dark mode support
-  - Tab-based navigation (Products, Scanner, Profile)
-
-- **Cross-Platform**
-  - Linux desktop ✅
-  - Android phone ✅
-  - iOS support
-  - Web (Chrome)
-  - macOS/Windows
-
-### 🚧 Planned
-- QR code scanning for receipts
-- Push notifications
-- Product image capture
-- Email reminders
-- Cloud backup/sync
-
----
-
-## 🏗️ Architecture
-
-### Technology Stack
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| **Frontend** | Flutter | 3.10+ |
-| **Backend** | Flask | 2.3.3 |
-| **Database** | SQLite/PostgreSQL | Latest |
-| **Auth** | JWT (Flask-JWT-Extended) | 4.5.2 |
-| **State Mgmt** | Provider | 6.1.1 |
-| **HTTP** | http + shared_preferences | Latest |
-
-### Backend Structure
-```
-backend/
-├── app.py                   # Main Flask app
-├── config.py               # Database config
-├── models.py               # SQLAlchemy models
-├── api/
-│   ├── users.py           # Auth endpoints
-│   ├── products.py        # Product CRUD
-│   └── imports.py         # QR import
-├── services/
-│   ├── expiration.py      # Expiration logic
-│   └── notification.py    # Notifications
-├── requirements.txt        # Python dependencies
-├── init_db.py             # Database init script
-└── freshreminder.db       # SQLite database
-```
-
-### Frontend Structure
-```
-freshreminder/
-├── lib/
-│   ├── main.dart              # App root & home screen
-│   ├── models/
-│   │   └── product.dart       # Product data model
-│   ├── providers/
-│   │   ├── auth_provider.dart       # Auth state
-│   │   └── product_provider.dart    # Product state
-│   ├── services/
-│   │   └── api_service.dart   # HTTP client
-│   └── screens/
-│       ├── auth_wrapper.dart   # Route guard
-│       ├── login_screen.dart   # Login UI
-│       └── register_screen.dart # Registration UI
-├── pubspec.yaml           # Flutter dependencies
-└── README.md             # This file
-```
-
----
-
-## 📦 Installation
-
-### Backend
-
-**1. Create virtual environment:**
 ```bash
-cd ../backend
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or
-venv\Scripts\activate     # Windows
+cd freshreminder
+flutter pub get
+flutter run -d linux    # or: android, ios, web, windows, macos
 ```
 
-**2. Install dependencies:**
+## 📚 Documentation
+
+Each component has detailed documentation:
+
+- **[Backend.md](backend/Backend.md)** - API endpoints, database schema, configuration
+- **[FRKassa.md](FRKassa/FRKassa.md)** - Employee app features, QR format, cart submission
+- **[FreshReminder.md](freshreminder/FreshReminder.md)** - Customer app features, product tracking
+
+## 🔄 System Flow
+
+### Complete User Journey
+
+1. **Cashier (FRKassa)**
+   - Opens FRKassa employee app
+   - Scans product QR codes (format: `ProductName|YYYY-MM-DD|Category`)
+   - Reviews products in cart
+   - Clicks "Warenkorb erstellen" (Create Cart)
+   - Receives unique token and QR code
+
+2. **Customer (FreshReminder)**
+   - Opens FreshReminder app
+   - Scans QR code shown by cashier
+   - App imports products into their list
+   - Products appear with expiration date tracking
+   - Can mark items as consumed or removed
+
+3. **Backend (Flask API)**
+   - Receives product submission from FRKassa
+   - Generates secure 22-character token
+   - Stores ShoppingTrip and Products in database
+   - Validates customer's token when importing
+   - Updates database with customer associations
+
+## 💾 Database Schema
+
+### ShoppingTrip Table
+```
+┌──────────────┬──────────┬─────────────────────────────┐
+│ Field        │ Type     │ Purpose                     │
+├──────────────┼──────────┼─────────────────────────────┤
+│ id           │ Integer  │ Primary key                 │
+│ token        │ String   │ Unique QR code token        │
+│ store_name   │ String   │ Which store created it      │
+│ timestamp    │ DateTime │ When created (auto)         │
+│ imported     │ Boolean  │ Whether customer imported   │
+│ user_id      │ Integer  │ Which customer imported     │
+└──────────────┴──────────┴─────────────────────────────┘
+```
+
+### Product Table
+```
+┌──────────────────┬──────────┬─────────────────────────────┐
+│ Field            │ Type     │ Purpose                     │
+├──────────────────┼──────────┼─────────────────────────────┤
+│ id               │ Integer  │ Primary key                 │
+│ trip_id          │ Integer  │ Links to ShoppingTrip       │
+│ name             │ String   │ Product name                │
+│ category         │ String   │ Product category            │
+│ expiration_date  │ Date     │ When product expires        │
+│ added_at         │ DateTime │ When added (auto)           │
+│ user_id          │ Integer  │ Which customer owns this    │
+│ removed_at       │ DateTime │ When marked as consumed     │
+│ removed_by       │ String   │ 'app', 'store', or 'admin'  │
+└──────────────────┴──────────┴─────────────────────────────┘
+```
+
+### User Table
+```
+┌──────────────────┬──────────┬─────────────────────────────┐
+│ Field            │ Type     │ Purpose                     │
+├──────────────────┼──────────┼─────────────────────────────┤
+│ id               │ Integer  │ Primary key                 │
+│ email            │ String   │ Login email                 │
+│ password_hash    │ String   │ Bcrypt hashed password      │
+│ push_token       │ String   │ Notification token          │
+│ notification_time│ Integer  │ Hour to notify (0-23)       │
+│ created_at       │ DateTime │ Account creation date       │
+└──────────────────┴──────────┴─────────────────────────────┘
+```
+
+## 🔒 Security Features
+
+### Token System
+- **Generation**: Cryptographically secure (22-character URL-safe)
+- **Expiration**: 24-hour validity window
+- **Uniqueness**: Unique constraint in database
+- **One-time use**: Marked as imported after customer scans
+
+### API Security
+- JWT authentication for customer endpoints
+- Password hashing for user accounts
+- CORS enabled for cross-origin requests
+- Input validation on all endpoints
+
+### Data Protection
+- No sensitive data in QR codes (only token)
+- User association only after authentication
+- Audit trail of removed items (removed_by field)
+- Database backups recommended for production
+
+## 📊 API Endpoints
+
+### Public Endpoints (No Authentication Required)
+```
+POST /api/import/generate
+  Purpose: Create shopping trip (cashier endpoint)
+  Body: {products: [...], store_name: string}
+  Returns: {token, qr_url, expires_at}
+
+GET /health
+  Purpose: Check backend status
+  Returns: {status: "ok"}
+```
+
+### Protected Endpoints (JWT Required)
+```
+GET /api/import/{token}
+  Purpose: Import shopping trip (customer endpoint)
+  Auth: Bearer JWT token
+  Returns: {trip_id, store, products: [...]}
+
+GET /api/products
+  Purpose: Get user's products
+  Auth: Bearer JWT token
+  Returns: {products: [...]}
+
+POST /api/users/register
+  Purpose: Create customer account
+  Body: {email, password}
+  Returns: {user_id, token}
+
+POST /api/users/login
+  Purpose: Login to account
+  Body: {email, password}
+  Returns: {token}
+```
+
+See [Backend.md](backend/Backend.md) for complete API documentation.
+
+## 🛠 Configuration
+
+### Backend (.env)
 ```bash
-pip install -r requirements.txt
-```
-
-**3. Initialize database:**
-```bash
-python init_db.py
-```
-
-**4. Set environment variables:**
-```bash
-cp .env.example .env
-# Edit .env with your settings
-```
-
-**Configuration (.env):**
-```
 FLASK_ENV=development
-JWT_SECRET_KEY=your-secret-key-change-this
-DATABASE_URL=sqlite:////absolute/path/to/freshreminder.db
+DATABASE_URL=sqlite:///freshreminder.db
+JWT_SECRET_KEY=your-secret-key-change-in-production
+API_URL=http://localhost:5000
 ```
 
-### Frontend
+### FRKassa & FreshReminder
+- Configured automatically via `api_config.dart`
+- Default: `http://localhost:5000`
+- For production, set via `--dart-define` flag:
+  ```bash
+  flutter run --dart-define=API_URL=https://api.yourdomain.com
+  ```
 
-**1. Get dependencies:**
-```bash
-flutter pub get
-```
+## 📱 Platform Support
 
-**2. Configure API URL:**
-Edit `lib/services/api_service.dart`:
-```dart
-// For Linux/local development:
-static const String baseUrl = 'http://localhost:5000/api';
-
-// For Android/phone (replace with your Linux IP):
-static const String baseUrl = 'http://192.168.1.100:5000/api';
-```
-
----
-
-## ▶️ Running the App
-
-### Start Backend (Terminal 1)
-```bash
-cd ../backend
-source venv/bin/activate
-python app.py
-```
-
-**Check health:**
-```bash
-curl http://localhost:5000/health
-# Response: {"status": "ok"}
-```
-
-### Start Frontend (Terminal 2)
-
-**Linux desktop:**
-```bash
-flutter run -d linux
-```
-
-**Android phone:**
-```bash
-flutter run
-# Select device when prompted
-```
-
-**iOS:**
-```bash
-flutter run -d ios
-```
-
----
+| Platform | Status | Notes |
+|----------|--------|-------|
+| **Android** | ✅ Supported | APK/AAB builds available |
+| **iOS** | ✅ Supported | IPA builds available |
+| **Web** | ✅ Supported | Progressive web app |
+| **Linux** | ✅ Supported | Desktop application |
+| **Windows** | ✅ Supported | Desktop application |
+| **macOS** | ✅ Supported | Desktop application |
 
 ## 🧪 Testing
 
-### 1. Automated Backend Tests
+### Test the Complete Flow
 
-**Run all API tests:**
-```bash
-cd ../backend
-bash test_api.sh
-```
+1. **Start Backend**
+   ```bash
+   cd backend
+   . venv/bin/activate
+   python3 app.py
+   ```
 
-**Tests cover:**
-- Health check
-- User registration
-- User login
-- Profile retrieval
-- Error cases (wrong password, duplicates)
-- Product CRUD
-- Authorization checks
+2. **Test with curl**
+   ```bash
+   curl -X POST http://localhost:5000/api/import/generate \
+     -H "Content-Type: application/json" \
+     -d '{
+       "products": [{"name": "Milk", "category": "Dairy", "expiration_date": "2025-12-15"}],
+       "store_name": "Test Store"
+     }'
+   ```
 
-### 2. Manual API Testing
+3. **Verify Database**
+   ```bash
+   cd backend
+   python3 << 'EOF'
+   from app import app, db
+   from models import ShoppingTrip, Product
+   with app.app_context():
+       trips = db.session.query(ShoppingTrip).all()
+       print(f"ShoppingTrips: {len(trips)}")
+       for trip in trips:
+           products = db.session.query(Product).filter_by(trip_id=trip.id).all()
+           print(f"  - Token: {trip.token}, Products: {len(products)}")
+   EOF
+   ```
 
-**Register user:**
-```bash
-curl -X POST http://localhost:5000/api/users/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "password123"
-  }'
-export TOKEN="eyJhbGci..."  # Save token
-```
+## 🚢 Deployment
 
-**Add product:**
-```bash
-curl -X POST http://localhost:5000/api/products/ \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "name": "Milk",
-    "category": "Dairy",
-    "expiration_date": "2025-12-05"
-  }'
-```
+### Production Checklist
 
-**Get products:**
-```bash
-curl -X GET http://localhost:5000/api/products/ \
-  -H "Authorization: Bearer $TOKEN"
-```
+- [ ] Change `JWT_SECRET_KEY` to random value
+- [ ] Set `FLASK_ENV=production`
+- [ ] Use PostgreSQL instead of SQLite
+- [ ] Deploy with Gunicorn/uWSGI (not Flask development server)
+- [ ] Set up HTTPS/SSL certificates
+- [ ] Configure proper API_URL for apps
+- [ ] Set up database backups
+- [ ] Configure CORS for production domain
+- [ ] Enable rate limiting
+- [ ] Set up monitoring and logging
 
-**Delete product:**
-```bash
-curl -X DELETE http://localhost:5000/api/products/1 \
-  -H "Authorization: Bearer $TOKEN"
-```
+See [Backend.md](backend/Backend.md) for deployment details.
 
-### 3. Frontend UI Testing
+## 📞 Troubleshooting
 
-**Registration:**
-1. Launch app → Click "Register" link
-2. Enter email, password, confirm password
-3. Submit → Should see Home screen with products list
+### Common Issues
 
-**Login:**
-1. Enter existing credentials
-2. Submit → Products load from database automatically
+**Backend won't start:**
+- Ensure Python 3.10+ installed
+- Check `freshreminder.db` file exists and is writable
+- Verify port 5000 is available
+- Check virtual environment is activated
 
-**Add Product:**
-1. Click **+** button
-2. Enter name, category, expiration date
-3. Click Add → Product saved to database
-4. Verify: Product persists after app restart
+**FRKassa gets 404 error:**
+- Verify backend is running on port 5000
+- Check API path is `/api/import/generate`
+- Ensure `api_config.dart` has correct base URL
 
-**Delete Product:**
-1. Long-press any product card
-2. Confirm delete
-3. Product removed and deletion persists
+**Linux build fails:**
+- Run `flutter clean` before building
+- Check CMakeLists.txt is not corrupted
+- Verify GTK development packages installed
 
-**Product Features:**
-- Products auto-sort by expiration date
-- Color-coded: Green (>3 days), Yellow (1-3 days), Red (expired)
-- Each user only sees their products
-- Products load automatically on login
+See specific app documentation for more troubleshooting.
 
-### 4. Android Testing
+## 📝 License
 
-**Enable USB Debugging:**
-1. Settings → About phone → Build number (tap 7x)
-2. Settings → Developer options → USB Debugging (ON)
+All components are part of the FreshReminder project.
 
-**Connect and run:**
-```bash
-adb devices  # Should show your phone
-flutter run  # Select your device
-```
+## 👥 Contributing
 
-**Important:** Update API URL in `lib/services/api_service.dart` to use your Linux machine's IP address instead of localhost.
+For contributions, please:
+1. Test on all supported platforms
+2. Update relevant documentation
+3. Ensure database migrations work
+4. Follow existing code style
 
-### 5. Database Verification
+## 🔗 Documentation Links
 
-**Check database contents:**
-```bash
-cd ../backend
-sqlite3 freshreminder.db
-
-SELECT id, email FROM user;
-SELECT id, user_id, name, category, expiration_date FROM product;
-```
-
----
-
-## 📡 API Documentation
-
-### Base URL
-```
-http://localhost:5000/api
-```
-
-### Authentication Endpoints
-
-**POST /users/register**
-- Register new user
-- Body: `{email, password}`
-- Returns: `{token, user_id}` (Status: 201)
-
-**POST /users/login**
-- Login existing user
-- Body: `{email, password}`
-- Returns: `{token, user_id}` (Status: 200)
-
-**GET /users/profile**
-- Get user profile (requires auth)
-- Returns: `{email, notification_time, created_at}` (Status: 200)
-
-### Product Endpoints
-
-**GET /products/**
-- Get all user products (requires auth)
-- Returns: `[{id, name, category, expiration_date, added_at}]` (Status: 200)
-
-**POST /products/**
-- Add new product (requires auth)
-- Body: `{name, category, expiration_date: "YYYY-MM-DD"}`
-- Returns: `{id, message}` (Status: 201)
-
-**DELETE /products/{id}**
-- Delete product (requires auth)
-- Returns: `{message}` (Status: 200)
-
-### Error Responses
-
-All errors return JSON with error message:
-```json
-{"error": "Error description"}
-```
-
-Status codes:
-- **400** - Bad request (missing/invalid fields)
-- **401** - Unauthorized (missing/invalid token)
-- **404** - Not found (product doesn't exist)
-- **422** - Validation error (invalid data format)
-- **500** - Server error
-
----
-
-## 🐛 Troubleshooting
-
-### 422 Error When Adding Products
-**Cause:** Date format mismatch
-**Fix:** Ensure expiration_date is sent as `YYYY-MM-DD` (not full datetime)
-```dart
-// Correct:
-'expiration_date': DateTime.now().toIso8601String().split('T')[0]
-
-// Wrong:
-'expiration_date': DateTime.now().toIso8601String()  // Has time component
-```
-
-### Backend Issues
-
-**Port 5000 already in use:**
-```bash
-lsof -i :5000
-kill -9 <PID>
-```
-
-**Can't connect from Flutter:**
-```bash
-# Check backend is running
-curl http://localhost:5000/health
-
-# On Android: use your Linux IP, not localhost
-# Find your IP: hostname -I
-```
-
-**Products don't persist:**
-- Check backend is running
-- Verify database exists: `ls backend/freshreminder.db`
-- Check logs for SQL errors
-
-### Frontend Issues
-
-**App won't compile:**
-```bash
-flutter clean
-flutter pub get
-flutter run -d linux
-```
-
-**Long-press delete not working:**
-- Product must have been saved to backend (has ID)
-- Products created locally won't have ID until saved
-- Add product properly through the + button
-
-**Products not loading on login:**
-- Wait a moment for API call to complete
-- Check network logs: `flutter logs`
-- Verify backend is accessible
-
----
-
-## 🌐 Deployment
-
-### Backend (Flask)
-
-**For production:**
-```bash
-# Use PostgreSQL instead of SQLite
-export DATABASE_URL=postgresql://user:pass@localhost/freshreminder
-
-# Set strong secret key
-export JWT_SECRET_KEY=$(python -c 'import secrets; print(secrets.token_hex(32))')
-
-# Disable debug
-export FLASK_ENV=production
-
-# Run with production server (gunicorn)
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
-```
-
-### Frontend (Flutter)
-
-**Build for Android:**
-```bash
-flutter build apk --release
-# Output: build/app/outputs/flutter-apk/app-release.apk
-```
-
-**Build for iOS:**
-```bash
-flutter build ios --release
-```
-
----
-
-## 📚 Additional Resources
-
-- [Flutter Docs](https://flutter.dev/docs)
-- [Flask Docs](https://flask.palletsprojects.com/)
-- [SQLAlchemy ORM](https://docs.sqlalchemy.org/)
-- [Material Design 3](https://m3.material.io/)
-- [JWT Best Practices](https://tools.ietf.org/html/rfc8725)
-
----
-
-**Version:** 1.0.0-MVP | **Last Updated:** 29 November 2025
-
-**Happy building! 🌱**
+- [Backend Documentation](backend/Backend.md)
+- [FRKassa Employee App](FRKassa/FRKassa.md)
+- [FreshReminder Customer App](freshreminder/FreshReminder.md)

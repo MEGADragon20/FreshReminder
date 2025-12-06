@@ -19,17 +19,17 @@ class ProductListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFormatter = DateFormat('dd.MM.yyyy');
-    final formattedDate = dateFormatter.format(product.bestBeforeDate);
+    final formattedDate = dateFormatter.format(product.expirationDate);
 
     Color statusColor = Colors.grey;
     String statusLabel = '';
 
     if (isExpired) {
       statusColor = Colors.red;
-      statusLabel = 'EXPIRED';
+      statusLabel = 'ABGELAUFEN';
     } else if (isExpiringToday) {
       statusColor = Colors.orange;
-      statusLabel = 'EXPIRES TODAY';
+      statusLabel = 'HEUTE ABLAUFEND';
     }
 
     return Card(
@@ -59,17 +59,17 @@ class ProductListItem extends StatelessWidget {
           children: [
             const SizedBox(height: 4),
             Text(
-              'Best Before: $formattedDate',
+              'Verfallsdatum: $formattedDate',
               style: TextStyle(
                 color: statusColor,
                 fontWeight: isExpired || isExpiringToday ? FontWeight.bold : FontWeight.normal,
               ),
             ),
-            if (product.additionalInfo != null && product.additionalInfo!.isNotEmpty)
+            if (product.category != null && product.category!.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  product.additionalInfo!,
+                  product.category!,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
@@ -92,7 +92,7 @@ class ProductListItem extends StatelessWidget {
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline),
           onPressed: onRemove,
-          tooltip: 'Remove product',
+          tooltip: 'Produkt entfernen',
         ),
       ),
     );

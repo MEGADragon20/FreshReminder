@@ -3,12 +3,22 @@ import '../models/scanned_product.dart';
 
 class CloudCartProvider extends ChangeNotifier {
   final List<ScannedProduct> _products = [];
+  String? _currentToken;
+  DateTime? _expiresAt;
 
   List<ScannedProduct> get products => List.unmodifiable(_products);
+  String? get currentToken => _currentToken;
+  DateTime? get expiresAt => _expiresAt;
 
   int get productCount => _products.length;
 
   bool get isEmpty => _products.isEmpty;
+
+  void setToken(String token, {DateTime? expiresAt}) {
+    _currentToken = token;
+    _expiresAt = expiresAt;
+    notifyListeners();
+  }
 
   void addProduct(ScannedProduct product) {
     _products.add(product);
@@ -24,19 +34,21 @@ class CloudCartProvider extends ChangeNotifier {
 
   void clearCart() {
     _products.clear();
+    _currentToken = null;
+    _expiresAt = null;
     notifyListeners();
   }
 
   // Check if any products are expired
   bool hasExpiredProducts() {
     final now = DateTime.now();
-    return _products.any((product) => product.bestBeforeDate.isBefore(now));
+    return _products.any((product) => product.expirationDate.isBefore(now));
   }
 
   // Get expired products
   List<ScannedProduct> getExpiredProducts() {
     final now = DateTime.now();
-    return _products.where((product) => product.bestBeforeDate.isBefore(now)).toList();
+    return _products.where((product) => product.expirationDate.isBefore(now)).toList();
   }
 
   // Get products expiring today
@@ -45,9 +57,9 @@ class CloudCartProvider extends ChangeNotifier {
     final today = DateTime(now.year, now.month, now.day);
     return _products.where((product) {
       final productDate = DateTime(
-        product.bestBeforeDate.year,
-        product.bestBeforeDate.month,
-        product.bestBeforeDate.day,
+        product.expirationDate.year,
+        product.expirationDate.month,
+        product.expirationDate.day,
       );
       return productDate.isAtSameMomentAs(today);
     }).toList();

@@ -1,4 +1,4 @@
-#!/home/md20/Dokumente/FreshReminder/backend/venv/bin/python3
+#!/home/md20/Documents/FreshReminder/backend/venv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys
