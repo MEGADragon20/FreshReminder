@@ -1,0 +1,20 @@
+name: employee_app
+description: Employee labeling app scaffold for FreshReminder
+publish_to: 'none'
+version: 0.1.0
+environment:
+  sdk: '>=2.17.0 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.0.0
+  qr_flutter: ^4.0.0
+  flutter_barcode_scanner: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,66 @@
+from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_sqlalchemy import SQLAlchemy
+import uuid
+
+db = SQLAlchemy()
+
+
+def gen_uuid():
+    return str(uuid.uuid4())
+
+
+class User(db.Model):
+    __tablename__ = 'users'
+    user_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    token = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
+class Product(db.Model):
+    __tablename__ = 'products'
+    product_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
+    product_name = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class FridgeItem(db.Model):
+    __tablename__ = 'fridge_items'
+    fridge_item_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    product_name = db.Column(db.String(255), nullable=False)
+    quantity = db.Column(db.Integer, default=1)
+    best_before_date = db.Column(db.Date, nullable=False)
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='active')
+
+    def as_dict(self):
+        return {
+            'fridge_item_id': self.fridge_item_id,
+            'user_id': self.user_id,
+            'product_name': self.product_name,
+            'quantity': self.quantity,
+            'best_before_date': self.best_before_date.isoformat(),
+            'status': self.status,
+        }
+
+
+def seed_default_items_for_user(db_session, user_id):
+    # Create three default test items with future expiry dates
+    items = [
+        ('Milk', 1, datetime.utcnow().date() + timedelta(days=7)),
+        ('Eggs', 12, datetime.utcnow().date() + timedelta(days=14)),
+        ('Butter', 1, datetime.utcnow().date() + timedelta(days=30)),
+    ]
+    for name, qty, bbd in items:
+        fi = FridgeItem(user_id=user_id, product_name=name, quantity=qty, best_before_date=bbd)
+        db_session.add(fi)
+    db_session.commit()

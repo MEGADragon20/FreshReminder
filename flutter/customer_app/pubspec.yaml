@@ -1,0 +1,26 @@
+name: customer_app
+description: Customer mobile app scaffold for FreshReminder
+publish_to: 'none'
+version: 0.1.0
+environment:
+  sdk: '>=2.17.0 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^1.0.0
+  qr_code_scanner: ^0.7.0
+  qr_flutter: ^4.0.0
+  dio: ^5.0.0
+  flutter_secure_storage: ^8.0.0
+  firebase_messaging: ^14.0.0
+  flutter_local_notifications: ^12.0.0
+  intl: ^0.18.0
+  shared_preferences: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
