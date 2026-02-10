@@ -21,18 +21,43 @@ class User(db.Model):
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
-    def check_password(self, password):
+    def check_password(self, password): 
         return check_password_hash(self.password_hash, password)
 
-
-class Product(db.Model):
-    __tablename__ = 'products'
-    product_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
-    product_name = db.Column(db.String(255), nullable=False)
+class Store(db.Model):
+    __tablename__ = 'stores'
+    store_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
+    store_name = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Product(db.Model): #In store
+    __tablename__ = 'products'
+    store_id = db.Column(db.String(36), db.ForeignKey('stores.store_id'), nullable=False)
+    product_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
+    product_name = db.Column(db.String(255), nullable=False)
+    best_before_days = db.Column(db.DateTime, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class FridgeItem(db.Model):
+class Cart(db.Model): #User's Cart
+    __tablename__ = 'carts'
+    cart_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    payed = db.Column(db.Boolean, default=False)
+    price = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+class CartItem(db.Model): #In Cart
+    __tablename__ = 'cart_items'
+    cart_id = db.Column(db.String(36), db.ForeignKey('carts.cart_id'), nullable=False)
+    cart_item_id = db.Column(db.String(36), unique=True, nullable=False, primary_key=True, default=gen_uuid)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    product_id = db.Column(db.String(36), db.ForeignKey('products.product_id'), nullable=False)
+    quantity = db.Column(db.Integer, default=1)
+    best_before_date = db.Column(db.Date, nullable=False)
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class FridgeItem(db.Model): #In Fridge
     __tablename__ = 'fridge_items'
     fridge_item_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
     user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
@@ -40,9 +65,11 @@ class FridgeItem(db.Model):
     quantity = db.Column(db.Integer, default=1)
     best_before_date = db.Column(db.Date, nullable=False)
     added_at = db.Column(db.DateTime, default=datetime.utcnow)
+    consumed_at = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(20), default='active')
 
     def as_dict(self):
+        """Not finished"""
         return {
             'fridge_item_id': self.fridge_item_id,
             'user_id': self.user_id,
