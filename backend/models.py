@@ -30,6 +30,14 @@ class Store(db.Model):
     store_name = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Employee(db.Model):
+    __tablename__ = 'employees'
+    employee_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
+    store_id = db.Column(db.String(36), db.ForeignKey('stores.store_id'), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 class Product(db.Model): #In store
     __tablename__ = 'products'
     store_id = db.Column(db.String(36), db.ForeignKey('stores.store_id'), nullable=False)
@@ -65,7 +73,7 @@ class FridgeItem(db.Model): #In Fridge
     quantity = db.Column(db.Integer, default=1)
     best_before_date = db.Column(db.Date, nullable=False)
     added_at = db.Column(db.DateTime, default=datetime.utcnow)
-    consumed_at = db.Column(db.DateTime, nullable=True)
+    consumed_at = db.Column(db.DateTime, nullable=True, default=None)
     status = db.Column(db.String(20), default='active')
 
     def as_dict(self):

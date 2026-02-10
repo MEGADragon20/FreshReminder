@@ -15,4 +15,25 @@ class FridgeService {
     }
     return [];
   }
+
+  Future<bool> removeFridgeItem(String code) async {
+    final token = AuthService.instance.token;
+    final headers = token != null ? {'Authorization': 'Bearer $token'} : null;
+    final resp = await _client.post('/fridge/remove/$code', {}, headers: headers);
+    return resp.statusCode == 200;
+  }
+
+  Future<bool> addFridgeItemByCode(String code) async {
+    final token = AuthService.instance.token;
+    final headers = token != null ? {'Authorization': 'Bearer $token'} : null;
+    final resp = await _client.post('/fridge/add/$code', {}, headers: headers);
+    return resp.statusCode == 200;
+  }
+
+  Future<bool> addFridgeItem(Map<String, dynamic> body) async {
+    final token = AuthService.instance.token;
+    final headers = token != null ? {'Authorization': 'Bearer $token'} : null;
+    final resp = await _client.post('/fridge/add', body, headers: headers);
+    return resp.statusCode == 200;
+  }
 }

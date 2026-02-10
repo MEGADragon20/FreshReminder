@@ -1,6 +1,14 @@
 make customer app better
-products to be removed etc more easily from there, add products manually.
-Make 5. nav slot for adding single products
+View products
+Sort products by bbd
+
+how are alpha QRs encoded?
 
 Employee app -> no functions
 -> nav! view db. Add other db for supermarket.
+employee login?
+store id
+
+
+better auth for customer app , 8 chars pw, maybe send verif email
+add more emails to one account -> future 
