@@ -43,6 +43,7 @@ def create_app():
 
     # Ensure DB tables exist
     with app.app_context():
+        db.drop_all()  # For development, drop existing tables to reset state
         db.create_all()
 
     return app
