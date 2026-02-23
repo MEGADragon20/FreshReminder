@@ -7,7 +7,7 @@ from .model_functions import compute_cart_price, send_receipt_email
 checkout_bp = Blueprint('checkout', __name__)
 
 # database connection and models
-from .models import db, Cart, User, CartItem, Product
+from .models import db, Cart, User, CartItem, Product, FridgeItem
 load_dotenv()
 OWN_EMAIL = os.getenv("OWN_EMAIL", "test@example.com")
 
@@ -62,6 +62,8 @@ def checkout_cart(cart_id, store_id):
         })
     send_receipt_email(user_email, fr_email, items, price)
     # 6. Add all items to fridge
+    for item in cart_items:
+        FridgeItem.from_cart_item(item)
 
     return {"status": "success", "price": price}
 

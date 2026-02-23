@@ -65,6 +65,11 @@ class CartItem(db.Model): #In Cart
     quantity = db.Column(db.Integer, default=1)
     added_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+#class Fridge(db.Model):
+#    __tablename__ = 'fridge_items'
+#    fridge_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
+#    admin = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False) 
+
 class FridgeItem(db.Model): #In Fridge
     __tablename__ = 'fridge_items'
     fridge_item_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
@@ -86,7 +91,13 @@ class FridgeItem(db.Model): #In Fridge
             'best_before_date': self.best_before_date.isoformat(),
             'status': self.status,
         }
-
+    
+    @classmethod
+    def from_cart_item(cls, item: CartItem):
+        user_id = Cart.query.filter_by(cart_id=item.cart_id).first().user_id
+        product = Product.query.filter_by(product_id = item.product_id).first()
+        quantity = item.quantity
+        return cls(user_id = user_id, product_name = product.product_name, quantity = quantity, best_before_date = product.best_before_date)
 
 def seed_default_items_for_user(db_session, user_id):
     # Create three default test items with future expiry dates
