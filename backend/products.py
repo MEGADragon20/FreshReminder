@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 import uuid
 from models import Product, db, Store
 from functools import wraps
+from store import store_employee_required
 
 def admin_required(f):
     @wraps(f)
@@ -20,30 +21,7 @@ def admin_required(f):
 
     return decorated
 
-def store_employee_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        store_id = request.view_args.get("store_id")
-        auth = request.headers.get('Authorization')
-        if not auth or not auth.startswith('Bearer '):
-            return jsonify({'error': 'missing authorization'}), 401
-
-        token = auth.replace('Bearer ', '')
-        # Here you would normally verify the token and check if the user is a shop owner
-        # For simplicity, we'll just check if the token is "shop-owner-token"
-        store_token = Store.query.filter_by(store_id=store_id).first().token
-        if not store_token or token != store_token:
-            return jsonify({'error': 'invalid token'}), 401
-        if token == store_token:
-            return jsonify({'error': 'invalid token'}), 401
-
-        return f(*args, **kwargs)
-
-    return decorated
-
 products_bp = Blueprint('products', __name__)
-
-
 
 @products_bp.route('/', methods=['GET'])
 @admin_required

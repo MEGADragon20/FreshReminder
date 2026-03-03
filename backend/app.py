@@ -51,4 +51,6 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
+    #app.config["SERVER_NAME"] = ""
+    app.url_map.default_subdomain = "api"
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=True)
