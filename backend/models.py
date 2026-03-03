@@ -28,6 +28,7 @@ class Store(db.Model):
     __tablename__ = 'stores'
     store_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
     store_name = db.Column(db.String(255), nullable=False)
+    token = db.Column(db.String(255), nullable=True, default=gen_uuid)
     manager_id = db.Column(db.String(36), db.ForeignKey('employees.employee_id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
