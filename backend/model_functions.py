@@ -1,4 +1,4 @@
-from models import db, Cart, CartItem, Product
+from models import db, Cart, CartItem, Product, Store
 import smtplib
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -85,3 +85,11 @@ def send_receipt_email(to_email, from_email, items, total_price):
 
     # Cleanup
     os.remove(tmp_file_path)
+
+
+def get_store_from_cart_id(cart_id):
+    cart = Cart.query.get(cart_id)
+    item = CartItem.query.filter_by(cart_id=cart_id).first()
+    if len(item) < 1:
+        return None
+    return Store.query.get(Product.query.get(item.product_id).store_id)

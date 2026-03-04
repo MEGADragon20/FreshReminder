@@ -1,15 +1,15 @@
 from flask import Blueprint, request, jsonify, abort
 import stripe, os
 from models import db, Cart, User, CartItem, Product, FridgeItem
-from model_functions import compute_cart_price, send_receipt_email
+from model_functions import compute_cart_price, send_receipt_email, get_store_from_cart_id
 from qr_functions import verify_token
 
 OWN_EMAIL = ""
 
 checkout_bp = Blueprint('checkout', __name__)
 
-@checkout_bp.route('/<store_id>/<cart_id>', methods=['POST'])
-def checkout_cart(store_id, cart_id):
+@checkout_bp.route('/<cart_id>', methods=['POST'])
+def checkout_cart(cart_id):
 
     token = request.json.get("token")
     if not token:
@@ -29,6 +29,8 @@ def checkout_cart(store_id, cart_id):
     cart = Cart.query.get(cart_id)
     if not cart or cart.user_id != user_id:
         abort(403, "Cart does not belong to user")
+
+    store_id = get_store_from_cart_id(cart_id).store_id
 
     price = compute_cart_price(cart_id)
 
