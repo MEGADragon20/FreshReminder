@@ -22,15 +22,21 @@ def store_employee_required(f):
 
     return decorated
 
-products_bp = Blueprint('products', __name__)
+def store_manager_required(f): #TODO
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        pass
+    return decorated
 
-@products_bp.route('/<store_id>/products', methods=['GET'])
+store_bp = Blueprint('products', __name__)
+
+@store_bp.route('/<store_id>/products', methods=['GET'])
 @store_employee_required
 def list_products(store_id): # same as /products/store/<store_id>
     products = Product.query.filter_by(store_id=store_id).all()
     return jsonify({'products': [p.to_dict() for p in products]}), 200
 
-@products_bp.route('/<store_id>/employees', methods=['GET'])
+@store_bp.route('/<store_id>/employees', methods=['GET'])
 @store_employee_required
 def display_employees(store_id):
     store = Store.query.filter_by(store_id=store_id).first()
@@ -39,7 +45,7 @@ def display_employees(store_id):
     employees = Employee.query.filter_by(store_id=store_id).all()
     return jsonify({'employees': [e.to_dict() for e in employees]}), 200
 
-@products_bp.route('/<store_id>/products', methods=['POST'])
+@store_bp.route('/<store_id>/products', methods=['POST'])
 @store_employee_required
 def create_product(store_id): # needs to be adapted to what frontend can provide
     data = request.get_json() or {}
@@ -57,7 +63,7 @@ def create_product(store_id): # needs to be adapted to what frontend can provide
     db.session.commit()
     return jsonify(product), 201
 
-@products_bp.route('/<store_id>/products/<product_id>', methods=['DELETE'])
+@store_bp.route('/<store_id>/products/<product_id>', methods=['DELETE'])
 @store_employee_required
 def delete_product(store_id, product_id):
     product = Product.query.filter_by(store_id=store_id, product_id=product_id).first()
@@ -70,7 +76,7 @@ def delete_product(store_id, product_id):
     except Exception as e:
         return jsonify({'error': 'failed', 'msg': str(e)}), 500
 
-@products_bp.route('/<store_id>/employees/<employee_id>', methods=['DELETE'])
+@store_bp.route('/<store_id>/employees/<employee_id>', methods=['DELETE'])
 @store_manager_required
 def delete_employee(store_id, employee_id):
     employee = Employee.query.filter_by(store_id=store_id, employee_id=employee_id).first()
@@ -83,7 +89,7 @@ def delete_employee(store_id, employee_id):
     except Exception as e:
         return jsonify({'error': 'failed', 'msg': str(e)}), 500
 
-@products_bp.route('/<store_id>/employees', methods=['POST'])
+@store_bp.route('/<store_id>/employees', methods=['POST'])
 @store_manager_required
 def create_employee(store_id):
     data = request.get_json() or {}

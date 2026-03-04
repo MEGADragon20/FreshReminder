@@ -1,12 +1,9 @@
 from flask import Blueprint, request, jsonify
 import uuid
 from .qr_functions import create_qr_beta
-
-cart_bp = Blueprint('cart', __name__)
-
-# database connection and models
 from .models import db, Cart, CartItem, Product
 
+cart_bp = Blueprint('cart', __name__)
 
 @cart_bp.route('/create', methods=['POST'])
 def create_cart():

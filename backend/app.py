@@ -1,7 +1,7 @@
 from flask import Flask, jsonify
 import os
-
 from models import db
+from .extensions import login_manager
 
 
 def create_app():
@@ -11,34 +11,31 @@ def create_app():
         SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL', 'sqlite:///freshreminder.db'),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
     )
-
+    login_manager.init_app(app)
     db.init_app(app)
 
-    # Register blueprints
-    try:
-        from auth import auth_bp
-        from products import products_bp
-        from cart import cart_bp
-        from fridge import fridge_bp
+    from auth import auth_bp
+    from products import products_bp
+    from cart import cart_bp
+    from fridge import fridge_bp
+    from checkout import checkout_bp
+    from payment import payment_bp
+    from store import store_bp
 
-        app.register_blueprint(auth_bp, url_prefix='/auth')
-        app.register_blueprint(products_bp, url_prefix='/products')
-        app.register_blueprint(cart_bp, url_prefix='/cart')
-        app.register_blueprint(fridge_bp, url_prefix='/fridge')
-    except Exception:
-        # Best-effort import if running as script
-        try:
-            from .auth import auth_bp
-            from .products import products_bp
-            from .cart import cart_bp
-            app.register_blueprint(auth_bp, url_prefix='/auth')
-            app.register_blueprint(products_bp, url_prefix='/products')
-            app.register_blueprint(cart_bp, url_prefix='/cart')
-        except Exception:
-            pass
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(products_bp, url_prefix='/products')
+    app.register_blueprint(cart_bp, url_prefix='/cart')
+    app.register_blueprint(fridge_bp, url_prefix='/fridge')
+    app.register_blueprint(store_bp, url_prefix='/store')
+    app.register_blueprint(payment_bp, url_prefix='/payment')
+    app.register_blueprint(checkout_bp, url_prefix='/checkout')
 
     @app.route('/')
     def index():
+        return 200
+
+    @app.route('/health')
+    def health():
         return jsonify({'service': 'FreshReminder Backend', 'status': 'ok'})
 
     # Ensure DB tables exist

@@ -54,6 +54,7 @@ class Cart(db.Model): #User's Cart
     __tablename__ = 'carts'
     cart_id = db.Column(db.String(36), primary_key=True, default=gen_uuid)
     user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    # store_id = db.Column() #!Important to check if all products are from the same store
     payed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     

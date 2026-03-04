@@ -1,8 +1,10 @@
 from flask import Blueprint, request, jsonify
 from models import db, User, seed_default_items_for_user
 from werkzeug.security import generate_password_hash
+from .extensions import login_manager
 
 auth_bp = Blueprint('auth', __name__)
+# wtf what is this 
 
 
 @auth_bp.route('/register', methods=['POST'])
