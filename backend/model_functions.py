@@ -1,4 +1,4 @@
-from .models import db, Cart, CartItem, Product
+from models import db, Cart, CartItem, Product
 import smtplib
 import smtplib
 from email.mime.multipart import MIMEMultipart

@@ -16,7 +16,7 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     token = db.Column(db.String(255), nullable=True)
-    is_authenticated = db.Column(db.boolean, default = False)
+    is_authenticated = db.Column(db.BOOLEAN, default = False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):

@@ -28,7 +28,7 @@ def store_manager_required(f): #TODO
         pass
     return decorated
 
-store_bp = Blueprint('products', __name__)
+store_bp = Blueprint('store', __name__)
 
 @store_bp.route('/<store_id>/products', methods=['GET'])
 @store_employee_required

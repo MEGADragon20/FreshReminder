@@ -1,7 +1,7 @@
 from flask import Flask, jsonify
 import os
 from models import db
-from .extensions import login_manager
+from extensions import login_manager
 
 
 def create_app():
@@ -32,7 +32,7 @@ def create_app():
 
     @app.route('/')
     def index():
-        return 200
+        return jsonify({}), 200
 
     @app.route('/health')
     def health():
@@ -49,5 +49,5 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
     #app.config["SERVER_NAME"] = ""
-    app.url_map.default_subdomain = "api"
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=True)
+    #app.url_map.default_subdomain = "api"
+    app.run(host='0.0.0.0', port=int(os.environ.get('BACKEND_PORT', 8080)), debug=True)

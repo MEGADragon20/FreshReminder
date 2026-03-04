@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 import uuid
-from .qr_functions import create_qr_beta
-from .models import db, Cart, CartItem, Product
+from qr_functions import create_qr_beta
+from models import db, Cart, CartItem, Product
 
 cart_bp = Blueprint('cart', __name__)
 

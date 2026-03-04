@@ -1,7 +1,14 @@
 from flask_login import LoginManager, login_required, login_user
 from models import User
-login_manager = LoginManager
+login_manager = LoginManager()
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.filter_by(user_id = user_id).first()
+
+@login_manager.request_loader
+def load_user_from_request(request):
+    token = request.args.get('token')
+    if token:
+        user = User.query.filter_by(api_key=token).first()
+        if user:
+            return user
+
+    return None

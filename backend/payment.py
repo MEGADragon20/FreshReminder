@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 import uuid
-from .qr_functions import create_qr_beta
-from .models import db, Cart, User
+from qr_functions import create_qr_beta
+from models import db, Cart, User
 from extensions import login_required
 from model_functions import compute_cart_price
 

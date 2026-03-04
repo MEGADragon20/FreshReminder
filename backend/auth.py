@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models import db, User, seed_default_items_for_user
 from werkzeug.security import generate_password_hash
-from .extensions import login_manager, login_required, login_user
+from extensions import login_manager, login_required, login_user
 
 auth_bp = Blueprint('auth', __name__)
 # wtf what is this 
@@ -46,21 +46,6 @@ def register():
 
     return jsonify({'user_id': user.user_id, 'email': user.email, 'access_token': user.token}), 201
 
-
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    data = request.get_json() or {}
-    email = data.get('email')
-    password = data.get('password')
-    if not email or not password:
-        return jsonify({'error': 'email and password required'}), 400
-
-    user = User.query.filter_by(email=email).first()
-    if user and user.check_password(password):
-        # In real impl issue JWT; here return stored token
-        return jsonify({'access_token': user.token, 'user': {'user_id': user.user_id, 'email': user.email}})
-
-    return jsonify({'error': 'invalid credentials'}), 401
 
 
 @auth_bp.route('/verify-2fa', methods=['POST'])
