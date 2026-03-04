@@ -44,6 +44,7 @@ def checkout_cart(cart_id, store_id):
     # 1. Compute the price of the cart
     price = compute_cart_price(cart_id)
     # 2. Send this price to the payment gateway of the checkout. I don't know how to this, so I'll ask a supermarket
+    # NOTE: /payment route may handle this. Check if this works internally (?)
     # 3. Maybe in some other place, get a confirmation of the success of the payment
     # 4. Mark cart as payed
     cart.payed = True

@@ -1,10 +1,25 @@
 from flask import Blueprint, request, jsonify
 from models import db, User, seed_default_items_for_user
 from werkzeug.security import generate_password_hash
-from .extensions import login_manager
+from .extensions import login_manager, login_required, login_user
 
 auth_bp = Blueprint('auth', __name__)
 # wtf what is this 
+
+
+@auth_bp.route('/login', methods=["GET", "POST"])
+def login():
+    email = request.args.get("email")
+    password = request.args.get("password")
+    c_password = request.args.get("c_password") # Not needed if checked beforehand
+    if not email or not password:
+        return jsonify({'error': 'Email and Password required'})
+    if c_password and c_password != password:
+        return jsonify({'error': 'Passwords do not match'}), 500
+    user = User(email = email, password_hash = generate_password_hash(password))
+    login_user(user)
+
+    next = flask.request.args.get()
 
 
 @auth_bp.route('/register', methods=['POST'])

@@ -16,6 +16,7 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     token = db.Column(db.String(255), nullable=True)
+    is_authenticated = db.Column(db.boolean, default = False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
@@ -23,6 +24,9 @@ class User(db.Model):
 
     def check_password(self, password): 
         return check_password_hash(self.password_hash, password)
+    
+    def get_id(self):
+        return str(self.user_id)
 
 class Store(db.Model):
     __tablename__ = 'stores'
